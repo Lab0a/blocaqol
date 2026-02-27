@@ -1,0 +1,41 @@
+# Déploiement VPS en une commande: docker compose up -d
+# MySQL + API BlocaQoL
+
+services:
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      MYSQL_DATABASE: blocaqol_auth
+      MYSQL_USER: blocaqol
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-blocaqol123}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Port MySQL exposé uniquement si besoin d'accès externe (optionnel)
+    # ports:
+    #   - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: 3000
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: blocaqol
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-blocaqol123}
+      MYSQL_DATABASE: blocaqol_auth
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

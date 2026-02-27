@@ -1,0 +1,24 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.code-workspace
+
+# Minecraft
+run/
+out/
+
+# Auth server
+auth-server/node_modules/
+auth-server/.env
+auth-server/config.json
+
+# OS
+.DS_Store
+Thumbs.db

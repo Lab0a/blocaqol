@@ -1,0 +1,11 @@
+{
+  "port": 3000,
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "blocaqol",
+    "password": "VOTRE_MOT_DE_PASSE",
+    "database": "blocaqol_auth"
+  },
+  "jwtSecret": "CHANGEZ_CETTE_CLE_SECRETE_EN_PRODUCTION"
+}
