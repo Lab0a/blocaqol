@@ -3,153 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BlocaQoL - Créer un compte</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Blocaria QoL - Créer un compte</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Outfit', sans-serif;
-      background: linear-gradient(160deg, #0c0c14 0%, #1a1a2e 40%, #0d1b2a 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fafafa;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #e8e8e8;
-      padding: 2rem;
+      padding: 1.5rem;
     }
     .card {
-      background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
+      background: #fff;
+      border-radius: 8px;
       padding: 2.5rem;
       width: 100%;
-      max-width: 400px;
-      box-shadow: 0 25px 80px rgba(0,0,0,0.5);
-    }
-    .logo {
-      text-align: center;
-      margin-bottom: 1.5rem;
+      max-width: 380px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     h1 {
-      font-size: 1.85rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 0.25rem;
     }
     .subtitle {
-      color: #64748b;
-      font-size: 0.95rem;
-      margin-top: 0.35rem;
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
     }
     label {
       display: block;
-      font-size: 0.8rem;
+      font-size: 0.875rem;
       font-weight: 500;
-      color: #94a3b8;
-      margin-bottom: 0.45rem;
-      margin-top: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      color: #333;
+      margin-bottom: 0.5rem;
     }
-    label:first-of-type { margin-top: 0; }
     input {
       width: 100%;
-      padding: 0.9rem 1rem;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px;
-      background: rgba(0,0,0,0.3);
-      color: #fff;
-      font-size: 1rem;
-      font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: #111;
     }
-    input::placeholder { color: #475569; }
     input:focus {
       outline: none;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0,102,204,0.15);
     }
+    input::placeholder { color: #999; }
     button {
       width: 100%;
-      padding: 1rem;
-      margin-top: 1.5rem;
+      padding: 0.65rem;
+      margin-top: 0.5rem;
       border: none;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border-radius: 6px;
+      background: #0066cc;
       color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: 0.95rem;
+      font-weight: 500;
       cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s;
     }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(99,102,241,0.4);
-    }
-    button:active { transform: translateY(0); }
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
+    button:hover { background: #0052a3; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
     .message {
-      margin-top: 1.25rem;
-      padding: 0.85rem;
-      border-radius: 10px;
-      font-size: 0.9rem;
+      margin-top: 1rem;
+      padding: 0.6rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
       text-align: center;
     }
-    .message.success {
-      background: rgba(34,197,94,0.2);
-      color: #4ade80;
-      border: 1px solid rgba(34,197,94,0.3);
-    }
-    .message.error {
-      background: rgba(239,68,68,0.2);
-      color: #f87171;
-      border: 1px solid rgba(239,68,68,0.3);
-    }
+    .message.success { background: #e8f5e9; color: #2e7d32; }
+    .message.error { background: #ffebee; color: #c62828; }
     .message.hidden { display: none; }
     .footer {
       margin-top: 1.5rem;
-      text-align: center;
       font-size: 0.8rem;
-      color: #475569;
+      color: #888;
+      text-align: center;
     }
-    .footer a { color: #6366f1; text-decoration: none; }
-    .footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="logo">
-      <h1>BlocaQoL</h1>
-      <p class="subtitle">Créer un compte pour le mod Minecraft</p>
-    </div>
+    <h1>Blocaria QoL</h1>
+    <p class="subtitle">Créer un compte pour le mod</p>
 
     <form id="registerForm">
-      <label for="code">Code d'inscription</label>
-      <input type="text" id="code" name="code" placeholder="Ex: ABC12345" maxlength="8" required autocomplete="off" style="letter-spacing: 0.15em; text-transform: uppercase;">
-
       <label for="username">Nom d'utilisateur</label>
-      <input type="text" id="username" name="username" placeholder="Ex: Steve" minlength="3" maxlength="64" required autocomplete="username">
+      <input type="text" id="username" placeholder="Ex: Steve" minlength="3" maxlength="64" required autocomplete="username">
 
       <label for="password">Mot de passe</label>
-      <input type="password" id="password" name="password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
+      <input type="password" id="password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
+
+      <label for="code">Code d'inscription</label>
+      <input type="text" id="code" placeholder="Ex: ABC12345" maxlength="8" required autocomplete="off">
 
       <button type="submit" id="submitBtn">Créer mon compte</button>
     </form>
 
     <div id="message" class="message hidden"></div>
-    <p class="footer">
-      Demande un code à l'admin pour t'inscrire.<br>
-      Utilise ces identifiants dans le mod (touche B).
-    </p>
+    <p class="footer">Merci de contacter BRivaa pour obtenir un code d'inscription.</p>
   </div>
 
   <script>
@@ -202,7 +160,7 @@
         const data = await res.json();
 
         if (res.ok && data.success) {
-          showMessage('✓ Compte créé ! Tu peux te connecter dans le mod.', false);
+          showMessage('Compte créé. Tu peux te connecter dans le mod.', false);
           form.reset();
         } else {
           showMessage(data.error || 'Erreur lors de la création', true);
