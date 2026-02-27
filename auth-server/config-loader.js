@@ -22,6 +22,7 @@ function loadConfig() {
   // 2. Variables d'environnement (prioritaires pour VPS)
   return {
     port: process.env.PORT || config.port || 3000,
+    adminSecret: process.env.ADMIN_SECRET || config.adminSecret || '',
     mysql: {
       host: process.env.MYSQL_HOST || config.mysql?.host || 'localhost',
       port: parseInt(process.env.MYSQL_PORT || config.mysql?.port || '3306'),

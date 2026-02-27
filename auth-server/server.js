@@ -53,8 +53,8 @@ async function waitForMysql(maxAttempts = 90) {
   }
 }
 
-// Créer la table users si elle n'existe pas (pratique pour Docker)
-async function ensureTable() {
+// Créer les tables si elles n'existent pas
+async function ensureTables() {
   try {
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -64,9 +64,25 @@ async function ensureTable() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS registration_codes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(32) NOT NULL UNIQUE,
+        used_at TIMESTAMP NULL,
+        used_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   } catch (e) {
-    console.warn('Table users:', e.message);
+    console.warn('Tables:', e.message);
   }
+}
+
+function randomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
 }
 
 const app = express();
@@ -82,6 +98,14 @@ app.get('/', (req, res) => {
     res.sendFile(indexPath);
   } else {
     res.status(404).send('Page d\'inscription non disponible. Reconstruire l\'image Docker: docker compose up -d --build');
+  }
+});
+app.get('/admin', (req, res) => {
+  const adminPath = path.join(publicDir, 'admin.html');
+  if (fs.existsSync(adminPath)) {
+    res.sendFile(adminPath);
+  } else {
+    res.status(404).send('Page admin non disponible');
   }
 });
 
@@ -140,18 +164,35 @@ app.post('/auth/verify', async (req, res) => {
   }
 });
 
-// POST /auth/register - Inscription
+// POST /auth/register - Inscription (code requis)
 app.post('/auth/register', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password || username.length < 3 || password.length < 6) {
+    const { username, password, code } = req.body;
+    if (!username || !password || !code) {
+      return res.status(400).json({ success: false, error: 'Username, password et code d\'inscription requis' });
+    }
+    if (username.length < 3 || password.length < 6) {
       return res.status(400).json({ success: false, error: 'Username (3+ car) et password (6+ car) requis' });
     }
 
+    const codeUpper = code.trim().toUpperCase();
+    const [codeRows] = await pool.execute(
+      'SELECT id FROM registration_codes WHERE code = ? AND used_at IS NULL',
+      [codeUpper]
+    );
+    if (codeRows.length === 0) {
+      return res.status(400).json({ success: false, error: 'Code d\'inscription invalide ou déjà utilisé' });
+    }
+
     const hash = await bcrypt.hash(password, 10);
-    await pool.execute(
+    const [result] = await pool.execute(
       'INSERT INTO users (username, password_hash) VALUES (?, ?)',
       [username, hash]
+    );
+    const userId = result.insertId;
+    await pool.execute(
+      'UPDATE registration_codes SET used_at = NOW(), used_by = ? WHERE code = ?',
+      [userId, codeUpper]
     );
 
     res.json({ success: true, message: 'Compte créé' });
@@ -164,8 +205,47 @@ app.post('/auth/register', async (req, res) => {
   }
 });
 
+// Middleware admin (secret dans header X-Admin-Secret)
+function requireAdmin(req, res, next) {
+  const secret = req.headers['x-admin-secret'] || req.body?.adminSecret;
+  if (!config.adminSecret || secret !== config.adminSecret) {
+    return res.status(401).json({ error: 'Accès refusé' });
+  }
+  next();
+}
+
+// POST /admin/generate-code - Générer un code (admin uniquement)
+app.post('/admin/generate-code', requireAdmin, async (req, res) => {
+  try {
+    let code = randomCode();
+    for (let i = 0; i < 10; i++) {
+      const [rows] = await pool.execute('SELECT id FROM registration_codes WHERE code = ?', [code]);
+      if (rows.length === 0) break;
+      code = randomCode();
+    }
+    await pool.execute('INSERT INTO registration_codes (code) VALUES (?)', [code]);
+    res.json({ success: true, code });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Erreur serveur' });
+  }
+});
+
+// GET /admin/codes - Liste des codes (admin uniquement)
+app.get('/admin/codes', requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT c.code, c.created_at, c.used_at, u.username as used_by FROM registration_codes c LEFT JOIN users u ON c.used_by = u.id ORDER BY c.created_at DESC LIMIT 50'
+    );
+    res.json({ codes: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 waitForMysql()
-  .then(ensureTable)
+  .then(ensureTables)
   .then(() => {
   app.listen(config.port, '0.0.0.0', () => {
     console.log(`BlocaQoL Auth Server sur http://0.0.0.0:${config.port}`);

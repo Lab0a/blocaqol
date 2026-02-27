@@ -30,6 +30,7 @@ services:
     environment:
       PORT: 3000
       MYSQL_HOST: mysql
+      ADMIN_SECRET: ${ADMIN_SECRET:-}
       MYSQL_PORT: 3306
       MYSQL_USER: blocaqol
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-blocaqol123}

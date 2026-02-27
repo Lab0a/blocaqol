@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlocaQoL - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(160deg, #0c0c14 0%, #1a1a2e 40%, #0d1b2a 100%);
+      min-height: 100vh;
+      color: #e8e8e8;
+      padding: 2rem;
+    }
+    .container { max-width: 520px; margin: 0 auto; }
+    .card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      background: linear-gradient(135deg, #fff 0%, #a0aec0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #718096; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #a0aec0;
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      background: rgba(0,0,0,0.25);
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    input:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    }
+    button {
+      width: 100%;
+      padding: 0.9rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99,102,241,0.4); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .code-display {
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      background: rgba(34,197,94,0.15);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 10px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-align: center;
+      color: #22c55e;
+      font-family: 'Consolas', monospace;
+    }
+    .code-display.hidden { display: none; }
+    .message {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .message.error { background: rgba(239,68,68,0.2); color: #f87171; }
+    .message.success { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .message.hidden { display: none; }
+    .codes-list { margin-top: 1rem; }
+    .codes-list h3 { font-size: 0.95rem; color: #a0aec0; margin-bottom: 0.75rem; }
+    .code-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.9rem;
+    }
+    .code-row .code { font-weight: 600; letter-spacing: 0.1em; }
+    .code-row .used { color: #718096; font-size: 0.8rem; }
+    .code-row .unused { color: #22c55e; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>BlocaQoL Admin</h1>
+      <p class="subtitle">Générer des codes d'inscription</p>
+
+      <label for="secret">Clé secrète admin</label>
+      <input type="password" id="secret" placeholder="ADMIN_SECRET" autocomplete="off">
+
+      <button class="btn-primary" id="generateBtn">Générer un code</button>
+
+      <div id="codeDisplay" class="code-display hidden"></div>
+      <div id="message" class="message hidden"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 1rem;">Codes récents</h3>
+      <button class="btn-primary" id="refreshBtn" style="margin-bottom: 1rem;">Actualiser</button>
+      <div id="codesList" class="codes-list"></div>
+    </div>
+  </div>
+
+  <script>
+    const secretInput = document.getElementById('secret');
+    const generateBtn = document.getElementById('generateBtn');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const messageEl = document.getElementById('message');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const codesList = document.getElementById('codesList');
+
+    function showMessage(text, isError) {
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + (isError ? 'error' : 'success');
+      messageEl.classList.remove('hidden');
+    }
+    function hideMessage() { messageEl.classList.add('hidden'); }
+    function hideCode() { codeDisplay.classList.add('hidden'); }
+
+    generateBtn.addEventListener('click', async () => {
+      const secret = secretInput.value.trim();
+      if (!secret) {
+        showMessage('Entre ta clé secrète admin', true);
+        return;
+      }
+      hideMessage();
+      hideCode();
+      generateBtn.disabled = true;
+      try {
+        const res = await fetch('/admin/generate-code', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Admin-Secret': secret
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok && data.code) {
+          codeDisplay.textContent = data.code;
+          codeDisplay.classList.remove('hidden');
+          navigator.clipboard?.writeText(data.code);
+          showMessage('Code copié ! Donne-le à la personne.', false);
+          loadCodes(secret);
+        } else {
+          showMessage(data.error || 'Erreur', true);
+        }
+      } catch (err) {
+        showMessage('Erreur de connexion', true);
+      } finally {
+        generateBtn.disabled = false;
+      }
+    });
+
+    async function loadCodes(secret) {
+      if (!secret) return;
+      try {
+        const res = await fetch('/admin/codes', {
+          headers: { 'X-Admin-Secret': secret }
+        });
+        const data = await res.json();
+        if (res.ok && data.codes) {
+          codesList.innerHTML = data.codes.length === 0
+            ? '<p style="color:#718096;font-size:0.9rem">Aucun code</p>'
+            : data.codes.map(c => `
+              <div class="code-row">
+                <span class="code">${c.code}</span>
+                <span class="${c.used_at ? 'used' : 'unused'}">
+                  ${c.used_at ? 'Utilisé par ' + (c.used_by || '?') : 'Disponible'}
+                </span>
+              </div>
+            `).join('');
+        }
+      } catch (e) {
+        codesList.innerHTML = '<p style="color:#f87171">Erreur chargement</p>';
+      }
+    }
+
+    refreshBtn.addEventListener('click', () => loadCodes(secretInput.value.trim()));
+  </script>
+</body>
+</html>

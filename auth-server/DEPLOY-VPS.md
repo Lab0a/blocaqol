@@ -11,19 +11,24 @@ curl -fsSL https://get.docker.com | sh
 # 2. Cloner ou copier le dossier auth-server
 cd auth-server
 
-# 3. Créer .env avec un mot de passe fort
+# 3. Créer .env avec mot de passe + clé admin
 echo "MYSQL_PASSWORD=$(openssl rand -base64 24)" > .env
 echo "MYSQL_ROOT_PASSWORD=$(openssl rand -base64 24)" >> .env
+echo "ADMIN_SECRET=$(openssl rand -hex 16)" >> .env
 
 # 4. Lancer
 docker compose up -d
 
-# 5. Créer votre compte
-# Option A : Page web → ouvrir http://IP_VPS:3000/ dans un navigateur
-# Option B : curl
+# 5. Générer un code d'inscription (admin)
+# Ouvrir http://IP_VPS:3000/admin → entrer ADMIN_SECRET → Générer un code
+# Donner ce code aux personnes que tu autorises à s'inscrire
+
+# 6. Créer un compte
+# Option A : Page web → http://IP_VPS:3000/ (code + username + password)
+# Option B : curl (avec code)
 curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"votrepseudo","password":"VotreMotDePasse123"}'
+  -d '{"username":"votrepseudo","password":"VotreMotDePasse123","code":"ABC12345"}'
 ```
 
 ## Ouvrir le port
