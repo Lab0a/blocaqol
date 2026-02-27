@@ -14,6 +14,11 @@ const { loadConfig } = require('./config-loader');
 
 const config = loadConfig();
 
+// Debug en Docker (host utilisé pour MySQL)
+if (process.env.MYSQL_HOST) {
+  console.log('MySQL config:', config.mysql.host + ':' + config.mysql.port);
+}
+
 if (!config.mysql.password) {
   console.error('Erreur: MYSQL_PASSWORD ou config.mysql.password requis');
   process.exit(1);
@@ -32,17 +37,20 @@ const pool = mysql.createPool({
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // Attendre MySQL (utile en Docker)
-async function waitForMysql(maxAttempts = 30) {
+async function waitForMysql(maxAttempts = 90) {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       await pool.execute('SELECT 1');
       return;
     } catch (e) {
       if (i === 0) console.log('En attente de MySQL...');
+      if (i === maxAttempts - 1) {
+        console.error('Dernière erreur MySQL:', e.message);
+        throw new Error('MySQL non disponible: ' + e.message);
+      }
       await sleep(1000);
     }
   }
-  throw new Error('MySQL non disponible');
 }
 
 // Créer la table users si elle n'existe pas (pratique pour Docker)
