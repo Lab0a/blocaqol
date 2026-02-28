@@ -100,7 +100,6 @@ public class LoginScreen extends Screen {
 					attemptTimestamps.remove(now);
 					AuthManager.setAuthenticated(result.token(), result.username(), result.allowAutofish());
 					if (result.connectedPlayers() != null) AuthManager.setConnectedPlayers(result.connectedPlayers());
-					BlocaQoLClient.registerFishingKeysIfAllowed();
 					errorMessage = Text.literal("§aConnecté !");
 					if (client != null) {
 						client.inGameHud.setOverlayMessage(Text.literal("✓ Connecté").formatted(Formatting.GREEN), false);

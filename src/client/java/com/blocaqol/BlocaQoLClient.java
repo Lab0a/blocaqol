@@ -22,7 +22,6 @@ public class BlocaQoLClient implements ClientModInitializer {
 	private static KeyBinding loginKey;
 	private static KeyBinding autoFishKey;
 	private static KeyBinding calibrationKey;
-	private static boolean fishingKeysRegistered;
 	private static int connectedRefreshTicks;
 
 	@Override
@@ -39,9 +38,18 @@ public class BlocaQoLClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_B,
 			"category.blocaqol"
 		));
-		if (config != null && !config.authEnabled) {
-			registerFishingKeys();
-		}
+		autoFishKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.blocaqol.autofish",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_F,
+			"category.blocaqol"
+		));
+		calibrationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.blocaqol.calibration",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_J,
+			"category.blocaqol"
+		));
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			if (config.authEnabled && !AuthManager.isAuthenticated()) {
@@ -63,15 +71,11 @@ public class BlocaQoLClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player != null && config != null && config.authEnabled && AuthManager.isAuthenticated()) {
-				registerFishingKeysIfAllowed();
 				if (++connectedRefreshTicks >= 1200) {
 					connectedRefreshTicks = 0;
 					ASYNC.execute(() -> {
 						var list = AuthManager.fetchConnectedPlayers(config.authApiUrl);
-						Util.getMainWorkerExecutor().execute(() -> {
-							AuthManager.setConnectedPlayers(list);
-							registerFishingKeysIfAllowed();
-						});
+						Util.getMainWorkerExecutor().execute(() -> AuthManager.setConnectedPlayers(list));
 					});
 				}
 			} else {
@@ -80,8 +84,9 @@ public class BlocaQoLClient implements ClientModInitializer {
 			while (loginKey.wasPressed() && client.currentScreen == null) {
 				client.setScreen(new LoginScreen(config));
 			}
-			if (autoFishKey != null) {
-				while (autoFishKey.wasPressed() && client.currentScreen == null) {
+			boolean canUseFishing = config == null || !config.authEnabled || (AuthManager.isAuthenticated() && AuthManager.isAllowAutofish());
+			while (autoFishKey.wasPressed() && client.currentScreen == null) {
+				if (canUseFishing) {
 					AutoFish.toggle();
 					if (client.player != null) {
 						boolean hasZone = config != null && config.trackerZoneX >= 0 && config.trackerZoneY >= 0 && config.trackerZoneW > 0 && config.trackerZoneH > 0;
@@ -92,36 +97,11 @@ public class BlocaQoLClient implements ClientModInitializer {
 					}
 				}
 			}
-			if (calibrationKey != null) {
-				while (calibrationKey.wasPressed() && client.currentScreen == null && config != null) {
+			while (calibrationKey.wasPressed() && client.currentScreen == null && config != null) {
+				if (canUseFishing) {
 					FishingCalibrationScreen.openWithScreenshot(config);
 				}
 			}
 		});
-	}
-
-	/** Enregistre F et J si l'utilisateur a la permission (auth désactivée ou allowAutofish). */
-	public static void registerFishingKeysIfAllowed() {
-		if (fishingKeysRegistered) return;
-		boolean canRegister = config == null || !config.authEnabled || (AuthManager.isAuthenticated() && AuthManager.isAllowAutofish());
-		if (!canRegister) return;
-		registerFishingKeys();
-	}
-
-	private static void registerFishingKeys() {
-		if (fishingKeysRegistered) return;
-		autoFishKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-			"key.blocaqol.autofish",
-			InputUtil.Type.KEYSYM,
-			GLFW.GLFW_KEY_F,
-			"category.blocaqol"
-		));
-		calibrationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-			"key.blocaqol.calibration",
-			InputUtil.Type.KEYSYM,
-			GLFW.GLFW_KEY_J,
-			"category.blocaqol"
-		));
-		fishingKeysRegistered = true;
 	}
 }
