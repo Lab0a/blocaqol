@@ -193,6 +193,7 @@
     .toast.success { background: var(--success); color: white; }
     .toast.error { background: var(--danger); color: white; }
     .toast.hidden { display: none; }
+    .admin-content.hidden { display: none; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
@@ -203,12 +204,14 @@
       <p class="subtitle">Panneau d’administration</p>
     </header>
 
-    <div class="card">
+    <div class="card" id="loginCard">
       <div class="card-title">Connexion</div>
       <label for="secret">Clé secrète</label>
       <input type="password" id="secret" placeholder="Clé admin" autocomplete="off">
+      <button class="btn btn-primary" id="connectBtn">Se connecter</button>
     </div>
 
+    <div id="adminContent" class="admin-content hidden">
     <div class="card">
       <div class="card-title">Nouveau code d’invitation</div>
       <div class="checkbox-row">
@@ -233,12 +236,20 @@
       <button class="btn btn-secondary" id="refreshUsersBtn" style="margin-bottom: 0.75rem;">Actualiser</button>
       <div id="usersList" class="list"></div>
     </div>
+    <div class="card">
+      <button class="btn btn-secondary" id="disconnectBtn">Se déconnecter</button>
+    </div>
+    </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
 
   <script>
     const secretInput = document.getElementById('secret');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const loginCard = document.getElementById('loginCard');
+    const adminContent = document.getElementById('adminContent');
     const allowAutofishCheck = document.getElementById('allowAutofish');
     const generateBtn = document.getElementById('generateBtn');
     const codeResult = document.getElementById('codeResult');
@@ -248,6 +259,8 @@
     const usersList = document.getElementById('usersList');
     const toast = document.getElementById('toast');
 
+    let authenticatedSecret = '';
+
     function showToast(text, isError) {
       toast.textContent = text;
       toast.className = 'toast ' + (isError ? 'error' : 'success');
@@ -255,10 +268,47 @@
       setTimeout(() => toast.classList.add('hidden'), 3000);
     }
 
-    function getSecret() { return secretInput.value.trim(); }
+    function getSecret() { return authenticatedSecret || secretInput.value.trim(); }
+
+    connectBtn.addEventListener('click', async () => {
+      const secret = secretInput.value.trim();
+      if (!secret) {
+        showToast('Entre ta clé secrète', true);
+        return;
+      }
+      connectBtn.disabled = true;
+      try {
+        const res = await fetch('/admin/codes', { headers: { 'X-Admin-Secret': secret } });
+        if (res.ok) {
+          authenticatedSecret = secret;
+          loginCard.classList.add('hidden');
+          adminContent.classList.remove('hidden');
+          loadCodes(secret);
+          loadUsers(secret);
+          showToast('Connecté', false);
+        } else {
+          showToast('Clé incorrecte', true);
+        }
+      } catch (e) {
+        showToast('Erreur de connexion', true);
+      } finally {
+        connectBtn.disabled = false;
+      }
+    });
+
+    disconnectBtn.addEventListener('click', () => {
+      authenticatedSecret = '';
+      secretInput.value = '';
+      adminContent.classList.add('hidden');
+      loginCard.classList.remove('hidden');
+    });
+
+    secretInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') connectBtn.click();
+    });
 
     generateBtn.addEventListener('click', async () => {
-      const secret = getSecret();
+      const secret = authenticatedSecret;
       if (!secret) {
         showToast('Entre ta clé secrète', true);
         return;
@@ -317,7 +367,7 @@
       }
     }
 
-    refreshBtn.addEventListener('click', () => loadCodes(getSecret()));
+    refreshBtn.addEventListener('click', () => loadCodes(authenticatedSecret));
 
     async function loadUsers(secret) {
       if (!secret) return;
@@ -362,7 +412,7 @@
       }
     }
 
-    refreshUsersBtn.addEventListener('click', () => loadUsers(getSecret()));
+    refreshUsersBtn.addEventListener('click', () => loadUsers(authenticatedSecret));
   </script>
 </body>
 </html>
