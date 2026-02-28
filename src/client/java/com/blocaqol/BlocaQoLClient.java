@@ -1,6 +1,7 @@
 package com.blocaqol;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -45,6 +46,18 @@ public class BlocaQoLClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			if (config.authEnabled && !AuthManager.isAuthenticated()) {
 				client.execute(() -> client.setScreen(new LoginScreen(config)));
+			}
+		});
+
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			if (config != null && config.authEnabled) {
+				AuthManager.notifyServerOnShutdown(config.authApiUrl);
+			}
+		});
+
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+			if (config != null && config.authEnabled) {
+				AuthManager.notifyServerOnShutdown(config.authApiUrl);
 			}
 		});
 

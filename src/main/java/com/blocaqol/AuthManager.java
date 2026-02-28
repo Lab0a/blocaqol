@@ -76,6 +76,25 @@ public class AuthManager {
 		}).start();
 	}
 
+	/** Notifie l'API de la déconnexion (fermeture du jeu). Appel synchrone pour que la requête parte avant l'arrêt. */
+	public static void notifyServerOnShutdown(String apiUrl) {
+		String t = token;
+		if (t == null || t.isEmpty() || apiUrl == null || apiUrl.isEmpty()) return;
+		try {
+			String url = apiUrl.replaceAll("/$", "") + "/auth/logout";
+			HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+			HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(url))
+				.header("Authorization", "Bearer " + t)
+				.timeout(Duration.ofSeconds(2))
+				.POST(HttpRequest.BodyPublishers.noBody())
+				.build();
+			client.send(request, HttpResponse.BodyHandlers.discarding());
+		} catch (Exception e) {
+			BlocaQoL.LOGGER.debug("Shutdown logout: {}", e.getMessage());
+		}
+	}
+
 	public static void setAuthenticated(String t, String u, boolean canAutofish) {
 		token = t;
 		username = u;
