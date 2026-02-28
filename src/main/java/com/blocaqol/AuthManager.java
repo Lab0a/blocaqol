@@ -23,6 +23,7 @@ public class AuthManager {
 	private static volatile String username;
 	private static volatile boolean checked = false;
 	private static volatile List<String> connectedPlayers = Collections.emptyList();
+	private static volatile boolean allowAutofish = false;
 
 	public static boolean isAuthenticated() {
 		return token != null && !token.isEmpty();
@@ -36,17 +37,27 @@ public class AuthManager {
 		return connectedPlayers;
 	}
 
+	public static boolean isAllowAutofish() {
+		return allowAutofish;
+	}
+
 	public static void logout() {
 		token = null;
 		username = null;
 		connectedPlayers = Collections.emptyList();
+		allowAutofish = false;
 		checked = true;
 	}
 
-	public static void setAuthenticated(String t, String u) {
+	public static void setAuthenticated(String t, String u, boolean canAutofish) {
 		token = t;
 		username = u;
+		allowAutofish = canAutofish;
 		checked = true;
+	}
+
+	public static void setAllowAutofish(boolean allow) {
+		allowAutofish = allow;
 	}
 
 	public static void setConnectedPlayers(List<String> players) {
@@ -85,12 +96,13 @@ public class AuthManager {
 					String t = json.get("token").getAsString();
 					String u = json.has("username") ? json.get("username").getAsString() : user;
 					List<String> players = parseConnectedPlayers(json);
-					return new AuthResult(true, null, t, u, players);
+					boolean allow = !json.has("allowAutofish") || json.get("allowAutofish").getAsBoolean();
+					return new AuthResult(true, null, t, u, players, allow);
 				}
 			}
 
 			if (response.statusCode() == 401) {
-				return new AuthResult(false, "Mot de passe incorrect", null, null, null);
+				return new AuthResult(false, "Mot de passe incorrect", null, null, null, false);
 			}
 
 			String error = "Erreur inconnue";
@@ -98,11 +110,11 @@ public class AuthManager {
 				JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
 				error = json.has("error") ? json.get("error").getAsString() : error;
 			} catch (Exception ignored) {}
-			return new AuthResult(false, error, null, null, null);
+			return new AuthResult(false, error, null, null, null, false);
 
 		} catch (Exception e) {
 			BlocaQoL.LOGGER.warn("Erreur login: {}", e.getMessage());
-			return new AuthResult(false, "Erreur: " + e.getMessage(), null, null, null);
+			return new AuthResult(false, "Erreur: " + e.getMessage(), null, null, null, false);
 		}
 	}
 
@@ -133,6 +145,9 @@ public class AuthManager {
 			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 			if (response.statusCode() == 200) {
 				JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+				if (json.has("allowAutofish")) {
+					setAllowAutofish(json.get("allowAutofish").getAsBoolean());
+				}
 				JsonArray arr = json.has("connectedPlayers") ? json.getAsJsonArray("connectedPlayers")
 					: json.has("players") ? json.getAsJsonArray("players") : null;
 				if (arr != null) {
@@ -153,9 +168,9 @@ public class AuthManager {
 		return s.replace("\\", "\\\\").replace("\"", "\\\"");
 	}
 
-	public record AuthResult(boolean success, String error, String token, String username, List<String> connectedPlayers) {
-		public AuthResult(boolean success, String error, String token, String username) {
-			this(success, error, token, username, null);
+	public record AuthResult(boolean success, String error, String token, String username, List<String> connectedPlayers, boolean allowAutofish) {
+		public AuthResult(boolean success, String error, String token, String username, List<String> connectedPlayers) {
+			this(success, error, token, username, connectedPlayers, true);
 		}
 	}
 }

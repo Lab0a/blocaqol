@@ -21,6 +21,7 @@ public class BlocaQoLClient implements ClientModInitializer {
 	private static KeyBinding loginKey;
 	private static KeyBinding autoFishKey;
 	private static KeyBinding calibrationKey;
+	private static boolean fishingKeysRegistered;
 	private static int connectedRefreshTicks;
 
 	@Override
@@ -37,18 +38,9 @@ public class BlocaQoLClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_B,
 			"category.blocaqol"
 		));
-		autoFishKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-			"key.blocaqol.autofish",
-			InputUtil.Type.KEYSYM,
-			GLFW.GLFW_KEY_F,
-			"category.blocaqol"
-		));
-		calibrationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-			"key.blocaqol.calibration",
-			InputUtil.Type.KEYSYM,
-			GLFW.GLFW_KEY_J,
-			"category.blocaqol"
-		));
+		if (config != null && !config.authEnabled) {
+			registerFishingKeys();
+		}
 
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			if (config.authEnabled && !AuthManager.isAuthenticated()) {
@@ -62,7 +54,10 @@ public class BlocaQoLClient implements ClientModInitializer {
 					connectedRefreshTicks = 0;
 					ASYNC.execute(() -> {
 						var list = AuthManager.fetchConnectedPlayers(config.authApiUrl);
-						Util.getMainWorkerExecutor().execute(() -> AuthManager.setConnectedPlayers(list));
+						Util.getMainWorkerExecutor().execute(() -> {
+							AuthManager.setConnectedPlayers(list);
+							registerFishingKeysIfAllowed();
+						});
 					});
 				}
 			} else {
@@ -71,19 +66,48 @@ public class BlocaQoLClient implements ClientModInitializer {
 			while (loginKey.wasPressed() && client.currentScreen == null) {
 				client.setScreen(new LoginScreen(config));
 			}
-			while (autoFishKey.wasPressed() && client.currentScreen == null) {
-				AutoFish.toggle();
-				if (client.player != null) {
-					boolean hasZone = config != null && config.trackerZoneX >= 0 && config.trackerZoneY >= 0 && config.trackerZoneW > 0 && config.trackerZoneH > 0;
-					var msg = AutoFish.isEnabled()
-						? net.minecraft.text.Text.literal("Auto-pêche " + (hasZone ? "minijeu" : "vanilla") + " activé").formatted(net.minecraft.util.Formatting.GREEN)
-						: net.minecraft.text.Text.literal("Auto-pêche désactivé").formatted(net.minecraft.util.Formatting.GRAY);
-					client.inGameHud.setOverlayMessage(msg, false);
+			if (autoFishKey != null) {
+				while (autoFishKey.wasPressed() && client.currentScreen == null) {
+					AutoFish.toggle();
+					if (client.player != null) {
+						boolean hasZone = config != null && config.trackerZoneX >= 0 && config.trackerZoneY >= 0 && config.trackerZoneW > 0 && config.trackerZoneH > 0;
+						var msg = AutoFish.isEnabled()
+							? net.minecraft.text.Text.literal("Auto-pêche " + (hasZone ? "minijeu" : "vanilla") + " activé").formatted(net.minecraft.util.Formatting.GREEN)
+							: net.minecraft.text.Text.literal("Auto-pêche désactivé").formatted(net.minecraft.util.Formatting.GRAY);
+						client.inGameHud.setOverlayMessage(msg, false);
+					}
 				}
 			}
-			while (calibrationKey.wasPressed() && client.currentScreen == null && config != null) {
-				FishingCalibrationScreen.openWithScreenshot(config);
+			if (calibrationKey != null) {
+				while (calibrationKey.wasPressed() && client.currentScreen == null && config != null) {
+					FishingCalibrationScreen.openWithScreenshot(config);
+				}
 			}
 		});
+	}
+
+	/** Enregistre F et J si l'utilisateur a la permission (auth désactivée ou allowAutofish). */
+	public static void registerFishingKeysIfAllowed() {
+		if (fishingKeysRegistered) return;
+		boolean canRegister = config == null || !config.authEnabled || (AuthManager.isAuthenticated() && AuthManager.isAllowAutofish());
+		if (!canRegister) return;
+		registerFishingKeys();
+	}
+
+	private static void registerFishingKeys() {
+		if (fishingKeysRegistered) return;
+		autoFishKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.blocaqol.autofish",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_F,
+			"category.blocaqol"
+		));
+		calibrationKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+			"key.blocaqol.calibration",
+			InputUtil.Type.KEYSYM,
+			GLFW.GLFW_KEY_J,
+			"category.blocaqol"
+		));
+		fishingKeysRegistered = true;
 	}
 }

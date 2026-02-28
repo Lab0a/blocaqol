@@ -61,6 +61,8 @@ public class LoginScreen extends Screen {
 		y += 30;
 		addDrawableChild(ButtonWidget.builder(Text.literal("Jouer sans le mod (déconnexion)"), btn -> {
 			AuthManager.logout();
+			AutoFish.setEnabled(false);
+			PlayerSkinCache.clear();
 			if (client != null) client.setScreen(null);
 		}).dimensions(centerX - 100, y, 200, 20).build());
 	}
@@ -96,8 +98,9 @@ public class LoginScreen extends Screen {
 
 				if (result.success()) {
 					attemptTimestamps.remove(now);
-					AuthManager.setAuthenticated(result.token(), result.username());
+					AuthManager.setAuthenticated(result.token(), result.username(), result.allowAutofish());
 					if (result.connectedPlayers() != null) AuthManager.setConnectedPlayers(result.connectedPlayers());
+					BlocaQoLClient.registerFishingKeysIfAllowed();
 					errorMessage = Text.literal("§aConnecté !");
 					if (client != null) {
 						client.inGameHud.setOverlayMessage(Text.literal("✓ Connecté").formatted(Formatting.GREEN), false);

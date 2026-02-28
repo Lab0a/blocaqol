@@ -35,6 +35,12 @@ public class AutoFish {
 	public static void register() {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (!enabled || client.player == null || client.world == null) return;
+			if (BlocaQoLClient.config != null && BlocaQoLClient.config.authEnabled) {
+				if (!AuthManager.isAuthenticated() || !AuthManager.isAllowAutofish()) {
+					enabled = false;
+					return;
+				}
+			}
 
 			var stack = client.player.getStackInHand(Hand.MAIN_HAND);
 			if (!stack.isOf(Items.FISHING_ROD)) return;

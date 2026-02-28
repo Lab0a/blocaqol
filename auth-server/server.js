@@ -90,18 +90,30 @@ async function ensureTables() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(64) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
+        allow_autofish TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    try {
+      await pool.execute('ALTER TABLE users ADD COLUMN allow_autofish TINYINT(1) DEFAULT 1');
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.warn('Migration allow_autofish:', e.message);
+    }
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS registration_codes (
         id INT AUTO_INCREMENT PRIMARY KEY,
         code VARCHAR(32) NOT NULL UNIQUE,
+        allow_autofish TINYINT(1) DEFAULT 1,
         used_at TIMESTAMP NULL,
         used_by INT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    try {
+      await pool.execute('ALTER TABLE registration_codes ADD COLUMN allow_autofish TINYINT(1) DEFAULT 1');
+    } catch (e) {
+      if (e.code !== 'ER_DUP_FIELDNAME') console.warn('Migration codes allow_autofish:', e.message);
+    }
   } catch (e) {
     console.warn('Tables:', e.message);
   }
@@ -150,7 +162,7 @@ app.post('/auth/login', async (req, res) => {
     }
 
     const [rows] = await pool.execute(
-      'SELECT id, username, password_hash FROM users WHERE username = ?',
+      'SELECT id, username, password_hash, COALESCE(allow_autofish, 1) as allow_autofish FROM users WHERE username = ?',
       [username]
     );
 
@@ -169,6 +181,7 @@ app.post('/auth/login', async (req, res) => {
       success: true,
       token: Buffer.from(`${user.id}:${Date.now()}`).toString('base64'),
       username: user.username,
+      allowAutofish: !!user.allow_autofish,
       connectedPlayers: getConnectedPlayers()
     });
   } catch (err) {
@@ -184,12 +197,15 @@ app.get('/auth/connected', async (req, res) => {
     if (!parsed) {
       return res.status(401).json({ error: 'Token requis' });
     }
-    const [rows] = await pool.execute('SELECT id, username FROM users WHERE id = ?', [parsed.userId]);
+    const [rows] = await pool.execute('SELECT id, username, COALESCE(allow_autofish, 1) as allow_autofish FROM users WHERE id = ?', [parsed.userId]);
     if (!rows.length) {
       return res.status(401).json({ error: 'Token invalide' });
     }
     markConnected(rows[0].id, rows[0].username);
-    res.json({ connectedPlayers: getConnectedPlayers() });
+    res.json({
+      connectedPlayers: getConnectedPlayers(),
+      allowAutofish: !!rows[0].allow_autofish
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
@@ -227,17 +243,18 @@ app.post('/auth/register', async (req, res) => {
 
     const codeUpper = code.trim().toUpperCase();
     const [codeRows] = await pool.execute(
-      'SELECT id FROM registration_codes WHERE code = ? AND used_at IS NULL',
+      'SELECT id, COALESCE(allow_autofish, 1) as allow_autofish FROM registration_codes WHERE code = ? AND used_at IS NULL',
       [codeUpper]
     );
     if (codeRows.length === 0) {
       return res.status(400).json({ success: false, error: 'Code d\'inscription invalide ou déjà utilisé' });
     }
 
+    const allowAutofish = !!codeRows[0].allow_autofish;
     const hash = await bcrypt.hash(password, 10);
     const [result] = await pool.execute(
-      'INSERT INTO users (username, password_hash) VALUES (?, ?)',
-      [username, hash]
+      'INSERT INTO users (username, password_hash, allow_autofish) VALUES (?, ?, ?)',
+      [username, hash, allowAutofish ? 1 : 0]
     );
     const userId = result.insertId;
     await pool.execute(
@@ -265,19 +282,48 @@ function requireAdmin(req, res, next) {
 }
 
 // POST /admin/generate-code - Générer un code (admin uniquement)
+// Body: { allowAutofish: true/false } — définit si l'utilisateur inscrit avec ce code aura l'auto-pêche
 app.post('/admin/generate-code', requireAdmin, async (req, res) => {
   try {
+    const allowAutofish = req.body?.allowAutofish !== false;
     let code = randomCode();
     for (let i = 0; i < 10; i++) {
       const [rows] = await pool.execute('SELECT id FROM registration_codes WHERE code = ?', [code]);
       if (rows.length === 0) break;
       code = randomCode();
     }
-    await pool.execute('INSERT INTO registration_codes (code) VALUES (?)', [code]);
-    res.json({ success: true, code });
+    await pool.execute('INSERT INTO registration_codes (code, allow_autofish) VALUES (?, ?)', [code, allowAutofish ? 1 : 0]);
+    res.json({ success: true, code, allowAutofish });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Erreur serveur' });
+  }
+});
+
+// GET /admin/users - Liste des utilisateurs (admin uniquement)
+app.get('/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT id, username, COALESCE(allow_autofish, 1) as allow_autofish FROM users ORDER BY username');
+    res.json({ users: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// POST /admin/users/:id/allow-autofish - Activer/désactiver auto-fish (admin uniquement)
+app.post('/admin/users/:id/allow-autofish', requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { allow } = req.body;
+    if (isNaN(userId) || typeof allow !== 'boolean') {
+      return res.status(400).json({ error: 'Paramètres invalides' });
+    }
+    await pool.execute('UPDATE users SET allow_autofish = ? WHERE id = ?', [allow ? 1 : 0, userId]);
+    res.json({ success: true, allowAutofish: allow });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
@@ -285,7 +331,7 @@ app.post('/admin/generate-code', requireAdmin, async (req, res) => {
 app.get('/admin/codes', requireAdmin, async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT c.code, c.created_at, c.used_at, u.username as used_by FROM registration_codes c LEFT JOIN users u ON c.used_by = u.id ORDER BY c.created_at DESC LIMIT 50'
+      'SELECT c.code, c.allow_autofish, c.created_at, c.used_at, u.username as used_by FROM registration_codes c LEFT JOIN users u ON c.used_by = u.id ORDER BY c.created_at DESC LIMIT 50'
     );
     res.json({ codes: rows });
   } catch (err) {

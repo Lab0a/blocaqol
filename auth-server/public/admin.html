@@ -3,182 +3,286 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blocaria QoL - Admin</title>
+  <title>BlocaQoL — Admin</title>
   <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a1f;
+      --surface-hover: #222228;
+      --border: #2a2a32;
+      --text: #e8e8ec;
+      --text-muted: #888;
+      --accent: #6366f1;
+      --accent-hover: #5558e3;
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.15);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #fafafa;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 2rem;
+      line-height: 1.5;
     }
-    .container { max-width: 420px; margin: 0 auto; }
-    .card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 2rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    .layout {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
     }
     h1 {
       font-size: 1.5rem;
       font-weight: 600;
-      color: #111;
-      margin-bottom: 0.25rem;
+      letter-spacing: -0.02em;
     }
     .subtitle {
-      color: #666;
+      color: var(--text-muted);
       font-size: 0.9rem;
-      margin-bottom: 1.5rem;
+      margin-top: 0.25rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
     }
     label {
       display: block;
       font-size: 0.875rem;
       font-weight: 500;
-      color: #333;
+      color: var(--text-muted);
       margin-bottom: 0.5rem;
     }
-    input {
+    input[type="password"],
+    input[type="text"] {
       width: 100%;
-      padding: 0.6rem 0.75rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+      padding: 0.65rem 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
       font-size: 0.95rem;
-      color: #111;
+      margin-bottom: 1rem;
     }
     input:focus {
       outline: none;
-      border-color: #0066cc;
-      box-shadow: 0 0 0 2px rgba(0,102,204,0.15);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
     }
-    button {
-      width: 100%;
-      padding: 0.65rem;
-      border: none;
-      border-radius: 6px;
-      background: #0066cc;
-      color: #fff;
-      font-size: 0.95rem;
-      font-weight: 500;
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
       cursor: pointer;
     }
-    button:hover { background: #0052a3; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .code-display {
+    .checkbox-row label {
+      margin: 0;
+      cursor: pointer;
+      flex: 1;
+      color: var(--text);
+      font-weight: 400;
+    }
+    .checkbox-row .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      width: 100%;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    .btn-secondary {
+      background: var(--surface-hover);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-result {
       margin-top: 1rem;
-      padding: 0.75rem;
-      background: #f5f5f5;
-      border-radius: 6px;
+      padding: 1rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      text-align: center;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
       font-size: 1.25rem;
       font-weight: 600;
-      letter-spacing: 0.15em;
-      text-align: center;
-      font-family: monospace;
+      letter-spacing: 0.2em;
     }
-    .code-display.hidden { display: none; }
-    .message {
-      margin-top: 1rem;
-      padding: 0.6rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      text-align: center;
+    .code-result.hidden { display: none; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
     }
-    .message.success { background: #e8f5e9; color: #2e7d32; }
-    .message.error { background: #ffebee; color: #c62828; }
-    .message.hidden { display: none; }
-    .section-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 1rem;
-    }
-    .codes-list { margin-top: 0.5rem; }
-    .code-row {
+    .badge-success { background: var(--success-bg); color: var(--success); }
+    .badge-danger { background: var(--danger-bg); color: var(--danger); }
+    .badge-muted { background: var(--border); color: var(--text-muted); }
+    .list { margin-top: 0.75rem; }
+    .list-item {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #eee;
-      font-size: 0.875rem;
+      justify-content: space-between;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
     }
-    .code-row .code { font-weight: 500; letter-spacing: 0.05em; }
-    .code-row .status { color: #888; font-size: 0.8rem; }
-    .code-row .status.available { color: #2e7d32; }
-    .btn-secondary {
-      background: #fff;
-      color: #333;
-      border: 1px solid #ddd;
-      margin-bottom: 1rem;
+    .list-item:last-child { border-bottom: none; }
+    .list-item .code { font-family: monospace; letter-spacing: 0.05em; }
+    .list-item .meta { color: var(--text-muted); font-size: 0.8rem; }
+    .list-item .actions { display: flex; align-items: center; gap: 0.5rem; }
+    .empty { color: var(--text-muted); font-size: 0.9rem; padding: 1rem; text-align: center; }
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      z-index: 100;
+      animation: fadeIn 0.2s;
     }
-    .btn-secondary:hover { background: #f5f5f5; }
+    .toast.success { background: var(--success); color: white; }
+    .toast.error { background: var(--danger); color: white; }
+    .toast.hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="layout">
+    <header>
+      <h1>BlocaQoL</h1>
+      <p class="subtitle">Panneau d’administration</p>
+    </header>
+
     <div class="card">
-      <h1>Blocaria QoL</h1>
-      <p class="subtitle">Admin — Générer des codes d'inscription</p>
-
+      <div class="card-title">Connexion</div>
       <label for="secret">Clé secrète</label>
-      <input type="password" id="secret" placeholder="ADMIN_SECRET" autocomplete="off">
-
-      <button id="generateBtn">Générer un code</button>
-
-      <div id="codeDisplay" class="code-display hidden"></div>
-      <div id="message" class="message hidden"></div>
+      <input type="password" id="secret" placeholder="Clé admin" autocomplete="off">
     </div>
 
     <div class="card">
-      <div class="section-title">Codes récents</div>
-      <button class="btn-secondary" id="refreshBtn">Actualiser</button>
-      <div id="codesList" class="codes-list"></div>
+      <div class="card-title">Nouveau code d’invitation</div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="allowAutofish" checked>
+        <div>
+          <label for="allowAutofish">Accès auto-pêche</label>
+          <div class="hint">L’utilisateur inscrit avec ce code aura l’auto-pêche et la calibration</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="generateBtn">Générer un code</button>
+      <div id="codeResult" class="code-result hidden"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Codes récents</div>
+      <button class="btn btn-secondary" id="refreshBtn" style="margin-bottom: 0.75rem;">Actualiser</button>
+      <div id="codesList" class="list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Utilisateurs</div>
+      <button class="btn btn-secondary" id="refreshUsersBtn" style="margin-bottom: 0.75rem;">Actualiser</button>
+      <div id="usersList" class="list"></div>
     </div>
   </div>
 
+  <div id="toast" class="toast hidden"></div>
+
   <script>
     const secretInput = document.getElementById('secret');
+    const allowAutofishCheck = document.getElementById('allowAutofish');
     const generateBtn = document.getElementById('generateBtn');
-    const codeDisplay = document.getElementById('codeDisplay');
-    const messageEl = document.getElementById('message');
+    const codeResult = document.getElementById('codeResult');
     const refreshBtn = document.getElementById('refreshBtn');
     const codesList = document.getElementById('codesList');
+    const refreshUsersBtn = document.getElementById('refreshUsersBtn');
+    const usersList = document.getElementById('usersList');
+    const toast = document.getElementById('toast');
 
-    function showMessage(text, isError) {
-      messageEl.textContent = text;
-      messageEl.className = 'message ' + (isError ? 'error' : 'success');
-      messageEl.classList.remove('hidden');
+    function showToast(text, isError) {
+      toast.textContent = text;
+      toast.className = 'toast ' + (isError ? 'error' : 'success');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
     }
-    function hideMessage() { messageEl.classList.add('hidden'); }
-    function hideCode() { codeDisplay.classList.add('hidden'); }
+
+    function getSecret() { return secretInput.value.trim(); }
 
     generateBtn.addEventListener('click', async () => {
-      const secret = secretInput.value.trim();
+      const secret = getSecret();
       if (!secret) {
-        showMessage('Entre ta clé secrète', true);
+        showToast('Entre ta clé secrète', true);
         return;
       }
-      hideMessage();
-      hideCode();
+      codeResult.classList.add('hidden');
       generateBtn.disabled = true;
       try {
         const res = await fetch('/admin/generate-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
-          body: JSON.stringify({})
+          body: JSON.stringify({ allowAutofish: allowAutofishCheck.checked })
         });
         const data = await res.json();
         if (res.ok && data.code) {
-          codeDisplay.textContent = data.code;
-          codeDisplay.classList.remove('hidden');
+          codeResult.textContent = data.code;
+          codeResult.classList.remove('hidden');
           navigator.clipboard?.writeText(data.code);
-          showMessage('Code copié.', false);
+          showToast('Code copié : ' + data.code + (data.allowAutofish ? ' (avec auto-pêche)' : ' (sans auto-pêche)'), false);
           loadCodes(secret);
         } else {
-          showMessage(data.error || 'Erreur', true);
+          showToast(data.error || 'Erreur', true);
         }
       } catch (err) {
-        showMessage('Erreur de connexion', true);
+        showToast('Erreur de connexion', true);
       } finally {
         generateBtn.disabled = false;
       }
@@ -191,22 +295,74 @@
         const data = await res.json();
         if (res.ok && data.codes) {
           codesList.innerHTML = data.codes.length === 0
-            ? '<p style="color:#888;font-size:0.875rem">Aucun code</p>'
+            ? '<div class="empty">Aucun code</div>'
             : data.codes.map(c => `
-              <div class="code-row">
-                <span class="code">${c.code}</span>
-                <span class="status ${c.used_at ? '' : 'available'}">
-                  ${c.used_at ? 'Utilisé par ' + (c.used_by || '?') : 'Disponible'}
-                </span>
+              <div class="list-item">
+                <div>
+                  <span class="code">${c.code}</span>
+                  <span class="badge ${c.allow_autofish ? 'badge-success' : 'badge-danger'}" style="margin-left: 0.5rem;">
+                    ${c.allow_autofish ? 'Auto-pêche ✓' : 'Sans auto-pêche'}
+                  </span>
+                </div>
+                <div>
+                  <span class="meta">${c.used_at ? 'Utilisé par ' + (c.used_by || '?') : 'Disponible'}</span>
+                </div>
               </div>
             `).join('');
+        } else {
+          codesList.innerHTML = '<div class="empty">' + (data.error || 'Erreur') + '</div>';
         }
       } catch (e) {
-        codesList.innerHTML = '<p style="color:#c62828;font-size:0.875rem">Erreur</p>';
+        codesList.innerHTML = '<div class="empty">Erreur de connexion</div>';
       }
     }
 
-    refreshBtn.addEventListener('click', () => loadCodes(secretInput.value.trim()));
+    refreshBtn.addEventListener('click', () => loadCodes(getSecret()));
+
+    async function loadUsers(secret) {
+      if (!secret) return;
+      try {
+        const res = await fetch('/admin/users', { headers: { 'X-Admin-Secret': secret } });
+        const data = await res.json();
+        if (res.ok && data.users) {
+          usersList.innerHTML = data.users.length === 0
+            ? '<div class="empty">Aucun utilisateur</div>'
+            : data.users.map(u => `
+              <div class="list-item">
+                <span>${u.username}</span>
+                <div class="actions">
+                  <span class="badge ${u.allow_autofish ? 'badge-success' : 'badge-danger'}">${u.allow_autofish ? 'Auto-pêche ✓' : 'Auto-pêche ✗'}</span>
+                  <button class="btn btn-secondary" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" data-id="${u.id}" data-allow="${u.allow_autofish ? '1' : '0'}">
+                    ${u.allow_autofish ? 'Retirer' : 'Donner'}
+                  </button>
+                </div>
+              </div>
+            `).join('');
+          usersList.querySelectorAll('.btn[data-id]').forEach(btn => {
+            btn.onclick = async () => {
+              const id = btn.dataset.id;
+              const allow = btn.dataset.allow !== '1';
+              try {
+                const r = await fetch(`/admin/users/${id}/allow-autofish`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': secret },
+                  body: JSON.stringify({ allow })
+                });
+                const d = await r.json();
+                if (r.ok) loadUsers(secret);
+                else showToast(d.error || 'Erreur', true);
+              } catch (e) { showToast('Erreur', true); }
+            };
+          });
+        } else {
+          usersList.innerHTML = '<div class="empty">' + (data.error || 'Erreur') + '</div>';
+        }
+      } catch (e) {
+        usersList.innerHTML = '<div class="empty">Erreur de connexion</div>';
+      }
+    }
+
+    refreshUsersBtn.addEventListener('click', () => loadUsers(getSecret()));
   </script>
 </body>
 </html>

@@ -30,6 +30,18 @@ async function init() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       username VARCHAR(64) NOT NULL UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
+      allow_autofish TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS registration_codes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      code VARCHAR(32) NOT NULL UNIQUE,
+      allow_autofish TINYINT(1) DEFAULT 1,
+      used_at TIMESTAMP NULL,
+      used_by INT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
