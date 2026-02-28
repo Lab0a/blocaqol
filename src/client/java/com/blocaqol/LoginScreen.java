@@ -60,7 +60,7 @@ public class LoginScreen extends Screen {
 
 		y += 30;
 		addDrawableChild(ButtonWidget.builder(Text.literal("Jouer sans le mod (déconnexion)"), btn -> {
-			AuthManager.logout();
+			AuthManager.logout(config != null ? config.authApiUrl : null);
 			AutoFish.setEnabled(false);
 			PlayerSkinCache.clear();
 			if (client != null) client.setScreen(null);

@@ -50,6 +50,7 @@ public class BlocaQoLClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player != null && config != null && config.authEnabled && AuthManager.isAuthenticated()) {
+				registerFishingKeysIfAllowed();
 				if (++connectedRefreshTicks >= 1200) {
 					connectedRefreshTicks = 0;
 					ASYNC.execute(() -> {

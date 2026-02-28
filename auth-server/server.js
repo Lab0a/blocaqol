@@ -41,7 +41,7 @@ const connectedUsers = new Map();
 const CONNECTED_TTL_MS = 3 * 60 * 1000;
 
 function markConnected(userId, username) {
-  connectedUsers.set(userId, { username, lastSeen: Date.now() });
+  connectedUsers.set(String(userId), { username, lastSeen: Date.now() });
 }
 
 function getConnectedPlayers() {
@@ -51,6 +51,10 @@ function getConnectedPlayers() {
     if (now - data.lastSeen < CONNECTED_TTL_MS) list.push(data.username);
   }
   return list;
+}
+
+function disconnectUser(userId) {
+  connectedUsers.delete(String(userId));
 }
 
 function parseToken(authHeader) {
@@ -113,6 +117,17 @@ async function ensureTables() {
       await pool.execute('ALTER TABLE registration_codes ADD COLUMN allow_autofish TINYINT(1) DEFAULT 1');
     } catch (e) {
       if (e.code !== 'ER_DUP_FIELDNAME') console.warn('Migration codes allow_autofish:', e.message);
+    }
+    try {
+      await pool.execute("CREATE TABLE IF NOT EXISTS _migrations (name VARCHAR(64) PRIMARY KEY)");
+      const [done] = await pool.execute("SELECT 1 FROM _migrations WHERE name = 'allow_autofish_default'");
+      if (done.length === 0) {
+        await pool.execute('UPDATE users SET allow_autofish = 1 WHERE allow_autofish IS NULL OR allow_autofish = 0');
+        await pool.execute("INSERT INTO _migrations (name) VALUES ('allow_autofish_default')");
+        console.log('Migration: allow_autofish mis à 1 pour les utilisateurs existants');
+      }
+    } catch (e) {
+      console.warn('Migration allow_autofish:', e.message);
     }
   } catch (e) {
     console.warn('Tables:', e.message);
@@ -188,6 +203,15 @@ app.post('/auth/login', async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, error: 'Erreur serveur' });
   }
+});
+
+// POST /auth/logout - Déconnexion (retire de la liste des connectés)
+app.post('/auth/logout', (req, res) => {
+  const parsed = parseToken(req.headers.authorization);
+  if (parsed) {
+    disconnectUser(parsed.userId);
+  }
+  res.json({ success: true });
 });
 
 // GET /auth/connected - Liste des joueurs connectés (Bearer token requis)

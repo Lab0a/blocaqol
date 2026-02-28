@@ -42,11 +42,38 @@ public class AuthManager {
 	}
 
 	public static void logout() {
+		logout(null);
+	}
+
+	/** Déconnexion. Si apiUrl fourni, notifie l'API pour retirer de la liste des connectés. */
+	public static void logout(String apiUrl) {
+		String t = token;
 		token = null;
 		username = null;
 		connectedPlayers = Collections.emptyList();
 		allowAutofish = false;
 		checked = true;
+		if (t != null && !t.isEmpty() && apiUrl != null && !apiUrl.isEmpty()) {
+			notifyLogoutAsync(apiUrl, t);
+		}
+	}
+
+	private static void notifyLogoutAsync(String apiUrl, String tok) {
+		new Thread(() -> {
+			try {
+				String url = apiUrl.replaceAll("/$", "") + "/auth/logout";
+				HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+				HttpRequest request = HttpRequest.newBuilder()
+					.uri(URI.create(url))
+					.header("Authorization", "Bearer " + tok)
+					.timeout(Duration.ofSeconds(3))
+					.POST(HttpRequest.BodyPublishers.noBody())
+					.build();
+				client.send(request, HttpResponse.BodyHandlers.discarding());
+			} catch (Exception e) {
+				BlocaQoL.LOGGER.debug("Logout notify: {}", e.getMessage());
+			}
+		}).start();
 	}
 
 	public static void setAuthenticated(String t, String u, boolean canAutofish) {
