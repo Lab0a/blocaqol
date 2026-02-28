@@ -1,5 +1,7 @@
 package com.blocaqol;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -8,6 +10,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Gestion de l'authentification - appels API au serveur d'auth.
@@ -17,6 +22,7 @@ public class AuthManager {
 	private static volatile String token;
 	private static volatile String username;
 	private static volatile boolean checked = false;
+	private static volatile List<String> connectedPlayers = Collections.emptyList();
 
 	public static boolean isAuthenticated() {
 		return token != null && !token.isEmpty();
@@ -26,9 +32,14 @@ public class AuthManager {
 		return username;
 	}
 
+	public static List<String> getConnectedPlayers() {
+		return connectedPlayers;
+	}
+
 	public static void logout() {
 		token = null;
 		username = null;
+		connectedPlayers = Collections.emptyList();
 		checked = true;
 	}
 
@@ -36,6 +47,10 @@ public class AuthManager {
 		token = t;
 		username = u;
 		checked = true;
+	}
+
+	public static void setConnectedPlayers(List<String> players) {
+		connectedPlayers = players != null ? List.copyOf(players) : Collections.emptyList();
 	}
 
 	public static boolean hasChecked() {
@@ -69,23 +84,78 @@ public class AuthManager {
 				if (json.get("success").getAsBoolean()) {
 					String t = json.get("token").getAsString();
 					String u = json.has("username") ? json.get("username").getAsString() : user;
-					return new AuthResult(true, null, t, u);
+					List<String> players = parseConnectedPlayers(json);
+					return new AuthResult(true, null, t, u, players);
 				}
 			}
 
-			JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
-			String error = json.has("error") ? json.get("error").getAsString() : "Erreur inconnue";
-			return new AuthResult(false, error, null, null);
+			if (response.statusCode() == 401) {
+				return new AuthResult(false, "Mot de passe incorrect", null, null, null);
+			}
+
+			String error = "Erreur inconnue";
+			try {
+				JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+				error = json.has("error") ? json.get("error").getAsString() : error;
+			} catch (Exception ignored) {}
+			return new AuthResult(false, error, null, null, null);
 
 		} catch (Exception e) {
 			BlocaQoL.LOGGER.warn("Erreur login: {}", e.getMessage());
-			return new AuthResult(false, "Erreur: " + e.getMessage(), null, null);
+			return new AuthResult(false, "Erreur: " + e.getMessage(), null, null, null);
 		}
+	}
+
+	private static List<String> parseConnectedPlayers(JsonObject json) {
+		if (!json.has("connectedPlayers") || !json.get("connectedPlayers").isJsonArray()) return Collections.emptyList();
+		List<String> list = new ArrayList<>();
+		for (JsonElement el : json.getAsJsonArray("connectedPlayers")) {
+			if (el.isJsonPrimitive()) list.add(el.getAsString());
+		}
+		return list;
+	}
+
+	/**
+	 * Récupère la liste des joueurs connectés au mod. À appeler depuis un thread secondaire.
+	 * L'API doit exposer GET /auth/connected avec header Authorization: Bearer &lt;token&gt;
+	 */
+	public static List<String> fetchConnectedPlayers(String apiUrl) {
+		if (token == null || token.isEmpty()) return Collections.emptyList();
+		try {
+			String url = apiUrl.replaceAll("/$", "") + "/auth/connected";
+			HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+			HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(url))
+				.header("Authorization", "Bearer " + token)
+				.timeout(Duration.ofSeconds(5))
+				.GET()
+				.build();
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			if (response.statusCode() == 200) {
+				JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+				JsonArray arr = json.has("connectedPlayers") ? json.getAsJsonArray("connectedPlayers")
+					: json.has("players") ? json.getAsJsonArray("players") : null;
+				if (arr != null) {
+					List<String> list = new ArrayList<>();
+					for (JsonElement el : arr) {
+						if (el.isJsonPrimitive()) list.add(el.getAsString());
+					}
+					return list;
+				}
+			}
+		} catch (Exception e) {
+			BlocaQoL.LOGGER.debug("Erreur fetch connected: {}", e.getMessage());
+		}
+		return Collections.emptyList();
 	}
 
 	private static String escapeJson(String s) {
 		return s.replace("\\", "\\\\").replace("\"", "\\\"");
 	}
 
-	public record AuthResult(boolean success, String error, String token, String username) {}
+	public record AuthResult(boolean success, String error, String token, String username, List<String> connectedPlayers) {
+		public AuthResult(boolean success, String error, String token, String username) {
+			this(success, error, token, username, null);
+		}
+	}
 }

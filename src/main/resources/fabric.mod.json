@@ -1,21 +1,23 @@
 {
-	"schemaVersion": 1,
-	"id": "blocaqol",
-	"version": "${version}",
-	"name": "BlocaQoL",
-	"description": "Un mod Fabric pour Minecraft 1.21.8",
-	"authors": ["BRivaa"],
-	"contact": {},
-	"license": "MIT",
-	"environment": "*",
-	"entrypoints": {
-		"main": ["com.blocaqol.BlocaQoL"],
-		"client": ["com.blocaqol.BlocaQoLClient"]
-	},
-	"depends": {
-		"fabricloader": ">=0.18.2",
-		"minecraft": "~1.21.8",
-		"java": ">=21",
-		"fabric-api": "*"
-	}
+  "schemaVersion": 1,
+  "id": "blocaqol",
+  "version": "${version}",
+  "name": "BlocaQoL",
+  "description": "Un mod Fabric pour Minecraft 1.21.8",
+  "authors": ["BRivaa"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.blocaqol.BlocaQoL"],
+    "client": ["com.blocaqol.BlocaQoLClient"]
+  },
+  "accessWidener": "blocaqol.accesswidener",
+  "mixins": ["blocaqol.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.18.2",
+    "minecraft": "~1.21.8",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
 }

@@ -1,4 +1,11 @@
 {
-  "key.blocaqol.login": "Open BlocaQoL Login",
-  "category.blocaqol": "BlocaQoL"
+	"key.blocaqol.login": "Open BlocaQoL Login",
+	"key.blocaqol.autofish": "Auto-fish (toggle)",
+	"key.blocaqol.customfish": "Custom fishing minigame mode (toggle)",
+	"key.blocaqol.packetdebug": "Debug custom packets (logs)",
+	"key.blocaqol.calibration": "Calibrate minigame zone (J)",
+	"key.blocaqol.togglepixeltracker": "Capture mode: Screenshot / glReadPixels (K)",
+	"key.blocaqol.invertzone": "Invert green zone (L)",
+	"key.blocaqol.attackkey": "Left/right click for minigame (M)",
+	"category.blocaqol": "BlocaQoL"
 }

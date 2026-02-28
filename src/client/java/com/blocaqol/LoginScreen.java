@@ -4,16 +4,20 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class LoginScreen extends Screen {
 
 	private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+	private static final int MAX_ATTEMPTS_PER_HOUR = 5;
+	private static final ConcurrentLinkedQueue<Long> attemptTimestamps = new ConcurrentLinkedQueue<>();
 
 	private TextFieldWidget usernameField;
 	private TextFieldWidget passwordField;
@@ -45,6 +49,7 @@ public class LoginScreen extends Screen {
 		passwordField = new TextFieldWidget(textRenderer, centerX - fieldWidth / 2, y, fieldWidth, fieldHeight, Text.literal("Password"));
 		passwordField.setPlaceholder(Text.literal("Mot de passe"));
 		passwordField.setMaxLength(128);
+		passwordField.setRenderTextProvider((text, cursor) -> text.isEmpty() ? OrderedText.EMPTY : Text.literal("*".repeat(text.length())).asOrderedText());
 		addDrawableChild(passwordField);
 
 		y += 40;
@@ -69,6 +74,15 @@ public class LoginScreen extends Screen {
 			return;
 		}
 
+		long now = System.currentTimeMillis();
+		long oneHourAgo = now - 3600_000;
+		attemptTimestamps.removeIf(ts -> ts < oneHourAgo);
+		if (attemptTimestamps.size() >= MAX_ATTEMPTS_PER_HOUR) {
+			errorMessage = Text.literal("§cTrop de tentatives. Réessayez dans 1 heure.");
+			return;
+		}
+		attemptTimestamps.add(now);
+
 		loading = true;
 		loginButton.active = false;
 		errorMessage = Text.literal("§7Connexion en cours...");
@@ -81,17 +95,22 @@ public class LoginScreen extends Screen {
 				loginButton.active = true;
 
 				if (result.success()) {
+					attemptTimestamps.remove(now);
 					AuthManager.setAuthenticated(result.token(), result.username());
+					if (result.connectedPlayers() != null) AuthManager.setConnectedPlayers(result.connectedPlayers());
 					errorMessage = Text.literal("§aConnecté !");
 					if (client != null) {
-						// Feedback visuel : message dans la barre d'action
-						client.inGameHud.setOverlayMessage(
-							Text.literal("✓ Connecté en tant que ").formatted(Formatting.GREEN)
-								.append(Text.literal(result.username()).formatted(Formatting.WHITE)), false);
+						client.inGameHud.setOverlayMessage(Text.literal("✓ Connecté").formatted(Formatting.GREEN), false);
 						client.setScreen(null);
 					}
 				} else {
-					errorMessage = Text.literal("§c" + (result.error() != null ? result.error() : "Erreur"));
+					String err = result.error() != null ? result.error() : "Erreur";
+					if (err.toLowerCase().contains("password") || err.toLowerCase().contains("mot de passe")
+						|| err.toLowerCase().contains("incorrect") || err.toLowerCase().contains("invalid")
+						|| err.toLowerCase().contains("credentials") || err.toLowerCase().contains("401")) {
+						err = "Mot de passe incorrect";
+					}
+					errorMessage = Text.literal("§c" + err);
 				}
 			});
 		});

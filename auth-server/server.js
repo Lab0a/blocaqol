@@ -36,6 +36,35 @@ const pool = mysql.createPool({
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Joueurs connectés (userId -> lastSeen timestamp). TTL 3 min.
+const connectedUsers = new Map();
+const CONNECTED_TTL_MS = 3 * 60 * 1000;
+
+function markConnected(userId, username) {
+  connectedUsers.set(userId, { username, lastSeen: Date.now() });
+}
+
+function getConnectedPlayers() {
+  const now = Date.now();
+  const list = [];
+  for (const data of connectedUsers.values()) {
+    if (now - data.lastSeen < CONNECTED_TTL_MS) list.push(data.username);
+  }
+  return list;
+}
+
+function parseToken(authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  try {
+    const token = authHeader.slice(7);
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [userId] = decoded.split(':');
+    return userId ? { userId } : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Attendre MySQL (utile en Docker)
 async function waitForMysql(maxAttempts = 90) {
   for (let i = 0; i < maxAttempts; i++) {
@@ -135,14 +164,35 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Identifiants incorrects' });
     }
 
+    markConnected(user.id, user.username);
     res.json({
       success: true,
       token: Buffer.from(`${user.id}:${Date.now()}`).toString('base64'),
-      username: user.username
+      username: user.username,
+      connectedPlayers: getConnectedPlayers()
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Erreur serveur' });
+  }
+});
+
+// GET /auth/connected - Liste des joueurs connectés (Bearer token requis)
+app.get('/auth/connected', async (req, res) => {
+  try {
+    const parsed = parseToken(req.headers.authorization);
+    if (!parsed) {
+      return res.status(401).json({ error: 'Token requis' });
+    }
+    const [rows] = await pool.execute('SELECT id, username FROM users WHERE id = ?', [parsed.userId]);
+    if (!rows.length) {
+      return res.status(401).json({ error: 'Token invalide' });
+    }
+    markConnected(rows[0].id, rows[0].username);
+    res.json({ connectedPlayers: getConnectedPlayers() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 

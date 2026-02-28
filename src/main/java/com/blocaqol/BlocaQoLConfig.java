@@ -18,6 +18,18 @@ public class BlocaQoLConfig {
 	public String authApiUrl = "http://62.210.244.167:3000";
 	public boolean authEnabled = true;
 
+	public boolean allowScreenOpenForFishing = true;
+	public int trackerZoneX = -1;
+	public int trackerZoneY = -1;
+	public int trackerZoneW = 20;
+	public int trackerZoneH = 80;
+	public boolean invertZoneLogic = false;
+	public boolean useAttackKeyForMinigame = false;
+	public float fishingTolerance = 0.12f;
+	public int fishingSampleMs = 16;
+	public float fishingPredict = 0.3f;
+	public boolean fishingAdaptive = true;
+
 	public static BlocaQoLConfig load(Path path) {
 		try {
 			if (Files.exists(path)) {
@@ -32,12 +44,14 @@ public class BlocaQoLConfig {
 		return config;
 	}
 
-	public void save(Path path) {
+	public boolean save(Path path) {
 		try {
 			Files.createDirectories(path.getParent());
 			Files.writeString(path, GSON.toJson(this));
+			return true;
 		} catch (IOException e) {
-			BlocaQoL.LOGGER.warn("Erreur sauvegarde config: {}", e.getMessage());
+			BlocaQoL.LOGGER.warn("[BlocaQoL] Erreur sauvegarde config: {} - {}", path.toAbsolutePath(), e.getMessage());
+			return false;
 		}
 	}
 
